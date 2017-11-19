@@ -40,7 +40,6 @@ public class MainActivity extends AppCompatActivity {
          */
 //        Observer<String> observer = getObserver();
 //        observable.subscribe(observer);
-
         /**
          * 第二种关联;
          */

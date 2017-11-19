@@ -17,7 +17,7 @@ import io.reactivex.disposables.Disposable;
 
 /**
  * Created by huangasys on 2017/11/14.16:09
- * 三.RxJava的操作符;
+ * 三.RxJava的简单操作符;
  */
 
 public class OperatorTestActivity extends AppCompatActivity {
