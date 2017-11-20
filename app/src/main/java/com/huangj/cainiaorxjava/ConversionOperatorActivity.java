@@ -3,12 +3,23 @@ package com.huangj.cainiaorxjava;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by HuangJ on 2017/11/18.22:59
@@ -17,10 +28,15 @@ import io.reactivex.functions.Function;
 
 public class ConversionOperatorActivity extends AppCompatActivity {
 
+    EditText mEditText;
+    private String mTrim;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conversion);
+        mEditText = findViewById(R.id.editText);
+        isDebounce();
     }
 
     public void onClick(View view) {
@@ -73,6 +89,83 @@ public class ConversionOperatorActivity extends AppCompatActivity {
     }
 
     private void isFloatMap() {
+        //
+
+    }
+
+    /**
+     * --过滤操作符
+     * 仅在过了一段指定时间后还没发送数据才发射数据;
+     */
+    private void isDebounce(){
+        mEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                //数据发生变化;
+                Log.d("print", "afterTextChanged: " +editable.toString());
+
+                 mTrim = editable.toString().trim();//String类型;
+
+                Observable.just(mTrim)//a.发送输入的文字得到Observable,
+                        /**
+                         * b.debouce 每过一段时间,发送一次数据; [ 这样就不用每次输入或者删除数据都去请求数据 ]
+                         */
+                        .debounce(500, TimeUnit.MILLISECONDS)
+                        .subscribeOn(AndroidSchedulers.mainThread())//监听Text变化需要在主线程
+                        //另外:  发送String之前判断是否为空; 过滤操作符 filter;
+                        .filter(new Predicate<String>() {
+                            @Override
+                            public boolean test(String s) throws Exception {
+                                return mTrim.length()>0;
+                            }
+                        })
+                        //c.通过发送String数据,发送网络请求得到List集合;
+                        .flatMap(new Function<String, ObservableSource<List<String>>>() {
+                            @Override
+                            public ObservableSource<List<String>> apply(String s) throws Exception {
+                                // 网络请求开始搜索;
+                                List<String> mList = new ArrayList<>();
+                                mList.add("one");
+                                mList.add("two");
+                                mList.add("three");
+                                return Observable.just(mList);//返回一个List;
+                            }
+                        })
+                        /* 用法与flatMap 用法完全一致,只是发射最近发射的数据;用来解决EditText请求数据的时候,前一次的数据未及时返回,有发送了后面的数据导致数据错乱;
+                        .switchMap(new Function<List<String>, ObservableSource<List<String>>>() {
+                            @Override
+                            public ObservableSource<List<String>> apply(List<String> strings) throws Exception {
+                                // 网络请求开始搜索;
+                                List<String> mList = new ArrayList<>();
+                                mList.add("one");
+                                mList.add("two");
+                                mList.add("three");
+                                return Observable.just(mList);//返回一个List;
+                            }
+                        })*/
+
+                        .subscribeOn(Schedulers.io())//网络请求在子线程
+                        .observeOn(AndroidSchedulers.mainThread())//主线程更新UI;
+                        //d.通过返回的list
+                .subscribe(new Consumer<List<String>>() {
+                    @Override
+                    public void accept(List<String> strings) throws Exception {
+                        //得到List;
+                        Log.d("print", "accept: " +strings.toString());
+                    }
+                });
+            }
+        });
 
     }
 
