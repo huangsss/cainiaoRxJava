@@ -15,7 +15,9 @@ import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
+import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
@@ -48,6 +50,9 @@ public class ConversionOperatorActivity extends AppCompatActivity {
             case R.id.isFloatMap:
                 isFloatMap();
                 break;
+            case R.id.isThrottleFirst:
+                isThrottleFirst();
+                break;
         }
     }
 
@@ -61,13 +66,13 @@ public class ConversionOperatorActivity extends AppCompatActivity {
         Observable<String> observableForMap = observable.map(new Function<Integer, String>() {
             @Override
             public String apply(Integer integer) throws Exception {
-                return 1+"变换后的String";
+                return 1 + "变换后的String";
             }
         });
         observableForMap.subscribe(new Consumer<String>() {
             @Override
             public void accept(String s) throws Exception {
-                Log.d("print", "accept: 转换后的String"+s);
+                Log.d("print", "accept: 转换后的String" + s);
             }
         });
 
@@ -97,7 +102,7 @@ public class ConversionOperatorActivity extends AppCompatActivity {
      * --过滤操作符
      * 仅在过了一段指定时间后还没发送数据才发射数据;
      */
-    private void isDebounce(){
+    private void isDebounce() {
         mEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -112,9 +117,9 @@ public class ConversionOperatorActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable editable) {
                 //数据发生变化;
-                Log.d("print", "afterTextChanged: " +editable.toString());
+                Log.d("print", "afterTextChanged: " + editable.toString());
 
-                 mTrim = editable.toString().trim();//String类型;
+                mTrim = editable.toString().trim();//String类型;
 
                 Observable.just(mTrim)//a.发送输入的文字得到Observable,
                         /**
@@ -126,7 +131,7 @@ public class ConversionOperatorActivity extends AppCompatActivity {
                         .filter(new Predicate<String>() {
                             @Override
                             public boolean test(String s) throws Exception {
-                                return mTrim.length()>0;
+                                return mTrim.length() > 0;
                             }
                         })
                         //c.通过发送String数据,发送网络请求得到List集合;
@@ -157,21 +162,50 @@ public class ConversionOperatorActivity extends AppCompatActivity {
                         .subscribeOn(Schedulers.io())//网络请求在子线程
                         .observeOn(AndroidSchedulers.mainThread())//主线程更新UI;
                         //d.通过返回的list
-                .subscribe(new Consumer<List<String>>() {
-                    @Override
-                    public void accept(List<String> strings) throws Exception {
-                        //得到List;
-                        Log.d("print", "accept: " +strings.toString());
-                    }
-                });
+                        .subscribe(new Consumer<List<String>>() {
+                            @Override
+                            public void accept(List<String> strings) throws Exception {
+                                //得到List;
+                                Log.d("print", "accept: " + strings.toString());
+                            }
+                        });
             }
         });
+    }
 
+    /**
+     * 防止连续点击按钮;
+     *  ThrottleFirst;
+     *  允许设置一个时间长度,之后它会发送固定时间长度内的第一个事件,而屏蔽其他事件,在达到间隔时间时,可以发送下一个事件.
+     */
+    public void isThrottleFirst() {
+
+        Observable.just(0).throttleFirst(1,TimeUnit.SECONDS)
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        Log.d("print", "onNext: ---点击事件---");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
     }
 }

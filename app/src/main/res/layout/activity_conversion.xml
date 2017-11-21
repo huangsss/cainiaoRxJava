@@ -25,4 +25,12 @@
     android:layout_height="wrap_content"
     android:hint="请输入文字"
     />
+
+    <Button
+        android:id="@+id/isThrottleFirst"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onClick"
+        android:text="throttle"
+        />
 </LinearLayout>
