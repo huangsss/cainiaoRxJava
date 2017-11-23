@@ -8,6 +8,7 @@ import android.view.View;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 import io.reactivex.Observable;
@@ -105,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
     }
 
     public Observer<String> getObserver() {
@@ -191,6 +191,56 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("print", "accept: 链式调用" + integer);
             }
         });
+    }
+
+    public void click3(View view) {
+
+        ArrayList<String> list = new ArrayList();
+        list.add("0");
+        list.add("1");
+        list.add("2");
+        list.add("3");
+        list.add("4");
+        list.add("5");
+        list.add("6");
+        list.add("9");
+        String s = "9";
+
+        boolean isExist = false;
+        if (list.size() < 8){
+            Log.d("print", "click3: list的个数小于8");
+            for (int i = 0; i < list.size(); i++) {
+                if (list.get(i).equals(s)){
+                    //打赏过,显示到最前面;
+                    list.add(0, list.remove(i));
+                    Log.d("print", "click3: 打赏过" +list);
+                    isExist = true;
+                }
+            }
+            if (!isExist){
+                //没打赏过则添加到最后;
+                list.add(s);
+                isExist = false;
+            }
+            Log.d("print", "click3: 最后的list---" +list);
+        } else if (list.size() >= 8){
+            Log.d("print", "click3: list的个数大于8");
+            //正好8个数据;
+            for (int i = 0; i < list.size(); i++) {
+                if (list.get(i).equals(s)){
+                    //存在则显示至最前面;
+                    list.add(0, list.remove(i));
+                    Log.d("print", "click3: 打赏过" +list);
+                    isExist = true;
+                }
+            }
+            if (!isExist){
+                //未打赏过,移除最后一个,添加至第一个;
+                list.remove(list.size()-1);
+                list.add(0,s);
+                Log.d("print", "click3: ---未打赏过,移除最后一个,添加至第一个---" +list);
+            }
+        }
     }
 
     /**

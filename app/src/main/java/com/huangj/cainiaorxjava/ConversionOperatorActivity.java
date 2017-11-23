@@ -7,6 +7,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 
 import java.util.ArrayList;
@@ -14,6 +15,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -33,16 +36,21 @@ public class ConversionOperatorActivity extends AppCompatActivity {
     EditText mEditText;
     private String mTrim;
 
+    Button clickButton;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_conversion);
         mEditText = findViewById(R.id.editText);
         isDebounce();
+
+        //防止按钮多次点击;
+        clickButton = findViewById(R.id.isThrottleFirst);
+
     }
 
     public void onClick(View view) {
-        isMap();
         switch (view.getId()) {
             case R.id.isMap:
                 isMap();
@@ -51,7 +59,14 @@ public class ConversionOperatorActivity extends AppCompatActivity {
                 isFloatMap();
                 break;
             case R.id.isThrottleFirst:
-                isThrottleFirst();
+//                isThrottleFirst();
+                break;
+            case R.id.isConcatMap:
+//                isThrottleFirst();
+                isConcatMap();
+                break;
+            case R.id.isBuffer:
+                isBuffer();
                 break;
         }
     }
@@ -93,8 +108,36 @@ public class ConversionOperatorActivity extends AppCompatActivity {
         });*/
     }
 
+    /**
+     * 作用：将被观察者发送的事件序列进行 拆分 & 单独转换，再合并成一个新的事件序列，最后再进行发送
+     */
     private void isFloatMap() {
-        //
+
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);
+                e.onNext(2);
+                e.onNext(3);
+            }
+        }).flatMap(new Function<Integer, ObservableSource<String>>() {
+            @Override
+            public ObservableSource<String> apply(Integer integer) throws Exception {
+                final List<String> list = new ArrayList<>();
+                for (int i = 0; i < 3; i++) {
+                    list.add("我是事件 " + integer + "拆分后的子事件" + i);
+                    // 通过flatMap中将被观察者生产的事件序列先进行拆分，再将每个事件转换为一个新的发送三个String事件
+                    // 最终合并，再发送给被观察者
+                }
+                return Observable.fromIterable(list);//发送List;
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d("print", "accept: 233" + s);
+            }
+        });
 
     }
 
@@ -158,7 +201,6 @@ public class ConversionOperatorActivity extends AppCompatActivity {
                                 return Observable.just(mList);//返回一个List;
                             }
                         })*/
-
                         .subscribeOn(Schedulers.io())//网络请求在子线程
                         .observeOn(AndroidSchedulers.mainThread())//主线程更新UI;
                         //d.通过返回的list
@@ -174,13 +216,13 @@ public class ConversionOperatorActivity extends AppCompatActivity {
     }
 
     /**
-     * 防止连续点击按钮;
-     *  ThrottleFirst;
-     *  允许设置一个时间长度,之后它会发送固定时间长度内的第一个事件,而屏蔽其他事件,在达到间隔时间时,可以发送下一个事件.
+     * 防止连续点击按钮; 不应这样写: 具体怎么写还不会>..17.11.23
+     * ThrottleFirst;
+     * 允许设置一个时间长度,之后它会发送固定时间长度内的第一个事件,而屏蔽其他事件,在达到间隔时间时,可以发送下一个事件.
      */
     public void isThrottleFirst() {
 
-        Observable.just(0).throttleFirst(1,TimeUnit.SECONDS)
+        Observable.just(0).throttleFirst(5, TimeUnit.SECONDS)
                 .subscribe(new Observer<Integer>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -207,5 +249,58 @@ public class ConversionOperatorActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+    }
+
+
+    private void isConcatMap() {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);
+                e.onNext(2);
+                e.onNext(3);
+            }
+        }).concatMap(new Function<Integer, ObservableSource<String>>() {
+            @Override
+            public ObservableSource<String> apply(Integer integer) throws Exception {
+                final List<String> list = new ArrayList<>();
+                for (int i = 0; i < 3; i++) {
+                    list.add("我是事件 " + integer + "拆分后的子事件" + i);
+                    // 通过concatMap中将被观察者生产的事件序列先进行拆分，再将每个事件转换为一个新的发送三个String事件
+                    // 最终合并，再发送给被观察者
+                }
+                return Observable.fromIterable(list);
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d("print", "accept: " + s);
+            }
+        });
+    }
+
+    /**
+     * - 作用
+     * 定期从 被观察者（Obervable）需要发送的事件中 获取一定数量的事件 & 放到缓存区中，最终发送
+     * - 应用场景
+     * 缓存被观察者发送的事件
+     * - 具体使用
+     * 那么，Buffer（）每次是获取多少个事件放到缓存区中的呢？下面我将通过一个例子来说明
+     */
+    private void isBuffer() {
+        Observable.just(1,2,3,4,5,6)
+                .buffer(2,2)
+                // 设置缓存区大小 & 步长
+                // 缓存区大小 = 每次从被观察者中获取的事件数量
+                // 步长 = 每次获取新事件的数量
+                .subscribe(new Consumer<List<Integer>>() {
+                    @Override
+                    public void accept(List<Integer> integers) throws Exception {
+                        Log.d("print", "accept: buffer-Size" +integers.size());
+                        for (Integer integer : integers) {
+                            Log.d("print", "accept: Buffer-integer" +integer);
+                        }
+                    }
+                });
     }
 }

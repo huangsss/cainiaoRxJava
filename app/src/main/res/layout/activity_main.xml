@@ -22,5 +22,11 @@
         android:text="rxJava2"
         android:onClick="click2"
         />
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="test"
+        android:onClick="click3"
+        />
 
 </LinearLayout>

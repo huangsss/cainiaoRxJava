@@ -22,8 +22,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * Created by HuangJ on 2017/11/18.17:43
- * 使用RxJava与Retrofit结合的轮询Demo;
- * [取消订阅需再学习学习...]
+ * 使用RxJava与Retrofit结合的网络轮询Demo;
+ * [取消订阅需需要再学习学习...]
  */
 
 public class PollingActivity extends AppCompatActivity {
@@ -127,7 +127,6 @@ public class PollingActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-//        subscription.unsubscribe();
         mDisposable.dispose();
     }
 }
